@@ -1,0 +1,40 @@
+# Custom User Exclusions
+.notes/
+
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Maven Build Output
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# IDEs (Zed, VS Code, IntelliJ, Eclipse)
+.idea/
+*.iml
+*.iws
+.vscode/
+.zed/
+.classpath
+.project
+.settings/
+
+# Security (Never commit local environment variables or secrets)
+.env
+*.pem

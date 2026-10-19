@@ -1,0 +1,46 @@
+name: Golden Path DevSecOps Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  security-scans:
+    name: Source Code Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Secret Scanning (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Static Analysis (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: "p/java" # Scans using predefined Java rules
+
+  build-and-container-scan:
+    name: Build and Container Scan
+    needs: security-scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: docker build -t my-spring-app:${{ github.sha }} .
+
+      - name: Container Security Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "my-spring-app:${{ github.sha }}"
+          format: "table"
+          exit-code: "1" # Fails the pipeline if vulnerabilities are found
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"

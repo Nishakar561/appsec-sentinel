@@ -1,0 +1,13 @@
+Switch to the root user: You will need the root password you created during installation
+Type this command and press Enter. When prompted, type your root password (it will remain invisible):
+su -
+Verification: Your terminal prompt will change from $ to #, indicating you are now the root user.
+
+Install the sudo package: Since you are already root, you do not need the sudo prefix to install it:
+apt update
+apt install sudo -y
+
+Add your user to the sudo group: Replace 'your_username' with the actual username you use to log in
+usermod -aG sudo your_username
+
+Apply the changes: Type exit to leave the root user shell, and then type exit again to completely close the SSH connection to your Mac. Once you SSH back into the Debian VM, your user will officially have sudo privileges.

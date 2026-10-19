@@ -1,0 +1,81 @@
+Code Checkout
+Retrieves source code repository using fetch-depth: 0 to enable full git history analysis for credentials and diff comparison.
+TRIGGER CONDITION: git push | pull_request (main)
+TARGET SCOPE: Application Source Repository
+SECURITY FAILURE CONSTRAINT: Exit Code 1 on git failure
+STEP INDEX: Gate 1 of 5
+PIPELINE CONFIG SNIPPET
+- name: Checkout Source
+  uses: actions/checkout@v4
+  with:
+    fetch-depth: 0 # Full history needed for Gitleaks
+Interactive Gate Test: Simulate Repository Fetch
+On Success: [SUCCESS] Checked out commit 8a4f91e (main branch). Depth: full history.
+On Failure: [ERROR] Git fetch failed: Host key verification failed. Exit code 1.
+
+Secret Scan: Gitleaks
+Scans repository history and current branch diff against high-entropy patterns and known secret signatures before code compile.
+TRIGGER CONDITION: Pre-Build Automated Gate
+TARGET SCOPE: AWS Keys, DB Passwords, API Tokens
+SECURITY FAILURE CONSTRAINT: Stops Pipeline (exit-code: 1)
+STEP INDEX: Gate 2 of 5
+PIPELINE CONFIG SNIPPET
+- name: Secret Scanning (Gitleaks)
+  uses: gitleaks/gitleaks-action@v2
+  env:
+    GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+  with:
+    args: detect --redact --exit-code=1
+Interactive Gate Test: Simulate High-Entropy Credential in Commit
+On Success: [PASS] Gitleaks scan completed. 0 secrets or leaked credentials detected.
+On Failure: [FAIL] Gitleaks detected AKIAIOSFODNN7EXAMPLE (AWS Access Key ID) in src/main/resources/application.yml. Pipeline halted (Exit 1).
+
+SAST: Semgrep
+Static Application Security Testing (SAST) analyzing Java source code for SQL injection, untrusted deserialization, and weak ciphers.
+TRIGGER CONDITION: Static Code Analysis Gate
+TARGET SCOPE: OWASP Top 10, Injection, Bad Crypto
+SECURITY FAILURE CONSTRAINT: Stops Pipeline on HIGH/CRITICAL
+STEP INDEX: Gate 3 of 5
+PIPELINE CONFIG SNIPPET
+- name: Semgrep SAST Scan
+  uses: semgrep/semgrep-action@v1
+  with:
+    config: p/default p/owasp-top-10
+    generateSarif: "true"
+Interactive Gate Test: Simulate Unsanitized SQL Query (CWE-89)
+On Success: [PASS] Semgrep analyzed 142 Java source files. 0 high/critical findings.
+On Failure: [FAIL] Semgrep rule java.lang.security.audit.sqli: Raw string concatenation in Statement.executeQuery() detected at UserRepo.java:42 (Exit 1).
+
+Docker Build
+Compiles Java binary via Maven/Gradle and packages app into a hardened, non-root Debian minimal container image tagged with commit SHA.
+TRIGGER CONDITION: Post-SAST Verification
+TARGET SCOPE: Java JAR & OCI Container Image
+SECURITY FAILURE CONSTRAINT: Build Failure on Compile Error
+STEP INDEX: Gate 4 of 5
+PIPELINE CONFIG SNIPPET
+- name: Build OCI Image
+  uses: docker/build-push-action@v5
+  with:
+    context: .
+    tags: my-spring-app:${{ github.sha }}
+    load: true
+Interactive Gate Test: Simulate Container Image Compilation
+On Success: [SUCCESS] Built Docker image my-spring-app:8a4f91e (Non-root user 10001, JDK 21).
+On Failure: [ERROR] Maven build failure: Symbol 'NonExistentMethod' not found during compilation.
+
+Container Scan: Trivy
+Scans compiled OCI image layer-by-layer for known CVEs in OS libraries (glibc, openssl) and third-party Java JAR dependencies (Log4j, Spring).
+TRIGGER CONDITION: Pre-Deployment Artifact Gate
+TARGET SCOPE: OS Packages & Java Dependencies
+SECURITY FAILURE CONSTRAINT: Stops Pipeline if CRITICAL/HIGH
+STEP INDEX: Gate 5 of 5
+PIPELINE CONFIG SNIPPET
+- name: Container Vulnerability Scan
+  uses: aquasecurity/trivy-action@master
+  with:
+    image-ref: 'my-spring-app:${{ github.sha }}'
+    exit-code: '1'
+    severity: 'CRITICAL,HIGH'
+Interactive Gate Test: Simulate CVE in Base OS Dependency
+On Success: [PASS] Trivy image scan complete. 0 CRITICAL/HIGH CVEs in OS or Maven packages.
+On Failure: [FAIL] Trivy found CVE-2024-21626 (CRITICAL) in runc 1.1.7. Image deployment blocked (Exit 1).

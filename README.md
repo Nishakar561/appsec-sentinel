@@ -8,23 +8,33 @@ This is a pre-hardened DevSecOps "Golden Path" template. It provides a baseline 
 
 Clone this repository and immediately activate the local pre-commit security wrapper. This prevents accidental hardcoded secrets from ever reaching Git history.
 
-`git clone <your-repository-url>`
-`cd <your-repository-folder>`
-`git config core.hooksPath .githooks`
+```bash
+git clone [https://github.com/Nishakar561/appsec-sentinel](https://github.com/Nishakar561/appsec-sentinel)
+cd appsec-sentinel
+git config core.hooksPath .githooks
+```
 
-### 2. Integrate Spring Initializr (The Overlay Method)
+### 2. Integrate Spring Initializr (Automated Setup)
 
-If you are generating a new project from `start.spring.io`, follow these steps to merge it securely without breaking the DevSecOps guardrails:
+If you are generating a new project from start.spring.io, use the included Python script to securely merge your codebase without breaking the DevSecOps guardrails.
 
-1. **Download & Extract:** Generate your project ZIP from Spring Initializr and extract it.
-2. **Overlay the Source:** Delete the default `src/` folder in this repository and replace it entirely with the `src/` folder from your extracted Initializr project.
-3. **Merge Dependencies Securely:** **DO NOT** overwrite the `pom.xml`. Open your Initializr `pom.xml` and copy only your new `<dependency>` blocks (e.g., PostgreSQL, Spring Data JPA) into the `pom.xml` of this repository. This ensures the strict Tomcat, Jackson, and Spring Boot framework security patches remain intact.
+Download: Generate your project ZIP from Spring Initializr.
 
-### 3. Build & Deploy
+Prepare: Move your downloaded .zip file into the existing temp/ folder located in the root of this repository.
 
-Once your code and dependencies are merged, commit and push. The GitHub Actions pipeline will automatically trigger to:
+Execute: Run the setup script. It will extract your files, overlay your src/ directory, securely inject strict Tomcat and Jackson vulnerability patches into your pom.xml, and verify the integration by running a Maven clean compile.
 
-- Scan for secrets (**Gitleaks**)
-- Perform Static Application Security Testing (**Semgrep**)
-- Build the container and scan layers for OS vulnerabilities (**Trivy**)
-- Generate a cryptographic Software Bill of Materials (**Syft**)
+```bash
+python3 setup.py
+```
+
+Cleanup: Once the setup has successfully run the .mvnw clean compile command and verified the build, delete the temp/ folder, the .setup_state.json file, and the setup.py script itself.
+
+## 3. Build & Deploy
+
+Once the script finishes and cleans up the temporary files, commit and push. The GitHub Actions pipeline will automatically trigger to:
+
+- Scan for secrets (Gitleaks)
+- Perform Static Application Security Testing (Semgrep)
+- Build the container and scan layers for OS vulnerabilities (Trivy)
+- Generate a cryptographic Software Bill of Materials (Syft)

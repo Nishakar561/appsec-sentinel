@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "🛡️ Running AppSec Sentinel: Scanning for secrets..."
+gitleaks protect -v --staged
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ SECRETS DETECTED: Commit permanently blocked!"
+  echo "Remove the credentials from your code before trying again."
+  exit 1
+fi
+
+echo "✅ Clean code. Commit authorized."
+exit 0

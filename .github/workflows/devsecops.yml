@@ -1,4 +1,4 @@
-name: Golden Path DevSecOps Pipeline
+name: AppSec Sentinel DevSecOps Pipeline
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 jobs:
   security-scans:
     name: Source Code Security Scans
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

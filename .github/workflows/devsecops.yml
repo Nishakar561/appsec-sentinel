@@ -44,3 +44,16 @@ jobs:
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: "my-spring-app:${{ github.sha }}"
+          format: "spdx-json"
+          output-file: "sbom.spdx.json"
+
+      - name: Upload SBOM as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-artifact
+          path: sbom.spdx.json

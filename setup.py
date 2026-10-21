@@ -124,12 +124,42 @@ def step_install_dependencies():
         os.chmod(mvn_cmd, 0o755)
 
     print("📦 Resolving and verifying Maven dependencies (this may take a minute)...")
+
+    # We combine stdout and stderr to ensure we capture the error wherever Maven prints it
     result = subprocess.run([mvn_cmd, "clean", "compile"], capture_output=True, text=True)
 
     if result.returncode != 0:
-        print("❌ Maven build failed. Check your dependency compatibility.")
-        print(result.stderr)
+        print("\n❌ Maven build failed. Analyzing error...\n")
+        output = result.stdout + "\n" + result.stderr
+
+        # 1. Catch Java Version Mismatch
+        if "release version" in output and "not supported" in output or "invalid target release" in output:
+            print("🔍 DIAGNOSTIC: Java Version Mismatch Detected")
+            print("💡 WHY: Your Spring Initializr project requests a newer Java version than what your machine is currently running.")
+            print("🔧 FIX: Open 'pom.xml', locate the <java.version> tag near the top, and change the number (e.g., from 21 or 27) to match your local Java version (e.g., 17).")
+
+        # 2. Catch Missing Dependencies / Offline Errors
+        elif "Could not resolve dependencies" in output:
+            print("🔍 DIAGNOSTIC: Dependency Resolution Failure")
+            print("💡 WHY: Maven cannot download the required packages. You may be offline, or a specific version does not exist in the Maven repository.")
+            print("🔧 FIX: Check your internet connection and verify the package versions in your pom.xml.")
+
+        # 3. Catch Framework Clashes (Tomcat/Spring)
+        elif "does not exist" in output or "ClassNotFound" in output:
+            print("🔍 DIAGNOSTIC: Framework Version Clash")
+            print("💡 WHY: The Spring Boot version you generated is likely incompatible with the AppSec Sentinel Tomcat/Jackson security overrides.")
+            print("🔧 FIX: Generate a compatible Spring Boot version, or adjust the Tomcat/Jackson dependency overrides in pom.xml.")
+
+        # 4. Fallback for Unknown Errors
+        else:
+            print("🔍 DIAGNOSTIC: Uncategorized Build Error")
+            print("Please review the raw Maven output below to determine the cause:")
+            print("-" * 50)
+            print(output)
+            print("-" * 50)
+
         sys.exit(1)
+
     print("✅ Dependencies installed and build verified.")
 
 def step_cleanup():
